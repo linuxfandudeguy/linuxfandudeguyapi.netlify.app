@@ -50,7 +50,7 @@ export async function handler(event, context) {
     body: JSON.stringify(response),
     headers: {
       "Content-Type": "application/json",
-      "Cache-Control": "max-age=30", // optional client-side caching
+      "Cache-Control": "max-age=5", // optional client-side caching
     },
   };
 }
