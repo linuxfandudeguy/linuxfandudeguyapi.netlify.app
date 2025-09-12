@@ -4,7 +4,7 @@ let lastFetch = 0; // timestamp in ms
 export async function handler(event, context) {
   const now = Date.now();
 
-  // Only fetch from Last.fm if cache is older than 5 seconds
+  // Only fetch from Last.fm if cache is older than 5 seconds because stinky rate limit
   if (!cachedData || now - lastFetch > 5000) {
     const apiKey = process.env.API_KEY; // stored securely in Netlify
     const username = "lelbois";
