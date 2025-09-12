@@ -37,7 +37,7 @@ export async function handler(event, context) {
 
     try {
       const res = await fetch(url);
-      cachedData = await res.json();
+      cachedData = await res.json(); // Keep full JSON
       lastFetch = now;
     } catch (err) {
       return {
@@ -48,19 +48,7 @@ export async function handler(event, context) {
     }
   }
 
-  const track = cachedData.recenttracks.track[0];
-  const nowPlaying = track["@attr"]?.nowplaying === "true";
-  const artist = track.artist["#text"];
-  const song = track.name;
-  const albumArt = track.image?.[2]["#text"] || "";
-
-  const response = {
-    nowPlaying,
-    artist,
-    song,
-    albumArt,
-  };
-
+  // Return the full cached JSON directly
   return {
     statusCode: 200,
     headers: {
@@ -68,6 +56,6 @@ export async function handler(event, context) {
       "Content-Type": "application/json",
       "Cache-Control": "max-age=5",
     },
-    body: JSON.stringify(response),
+    body: JSON.stringify(cachedData),
   };
 }
