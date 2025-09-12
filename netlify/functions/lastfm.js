@@ -33,7 +33,7 @@ export async function handler(event, context) {
       format: "json"
     });
 
-    const url = `https://ws.audioscrobbler.com/2.0/?${params.toString()}`;
+    const url = `https://ws.audioscrobbler.com/2.0/?${params.toString()}&limit=1`;
 
     try {
       const res = await fetch(url);
