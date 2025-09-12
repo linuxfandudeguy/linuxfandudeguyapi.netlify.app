@@ -3,13 +3,29 @@ let lastFetch = 0; // timestamp in ms
 
 export async function handler(event, context) {
   const now = Date.now();
+  const allowedOrigin = "https://linuxfandudeguy.github.io";
 
-  // Only fetch from Last.fm if cache is older than 5 seconds because stinky rate limit
+  // Set CORS headers
+  const headers = {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
+
+  // Handle preflight OPTIONS request
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers,
+      body: "OK",
+    };
+  }
+
+  // Only fetch from Last.fm if cache is older than 5 seconds
   if (!cachedData || now - lastFetch > 5000) {
-    const apiKey = process.env.API_KEY; // stored securely in Netlify
+    const apiKey = process.env.API_KEY; 
     const username = "lelbois";
 
-    // Safely escape parameters
     const params = new URLSearchParams({
       method: "user.getrecenttracks",
       user: username,
@@ -26,17 +42,17 @@ export async function handler(event, context) {
     } catch (err) {
       return {
         statusCode: 500,
+        headers,
         body: JSON.stringify({ error: "Failed to fetch Last.fm data" }),
       };
     }
   }
 
-  // Pick the latest track and include album art if available
   const track = cachedData.recenttracks.track[0];
-  const nowPlaying = track["@attr"] && track["@attr"].nowplaying === "true";
+  const nowPlaying = track["@attr"]?.nowplaying === "true";
   const artist = track.artist["#text"];
   const song = track.name;
-  const albumArt = track.image?.[2]["#text"] || ""; // medium size
+  const albumArt = track.image?.[2]["#text"] || "";
 
   const response = {
     nowPlaying,
@@ -47,10 +63,11 @@ export async function handler(event, context) {
 
   return {
     statusCode: 200,
-    body: JSON.stringify(response),
     headers: {
+      ...headers,
       "Content-Type": "application/json",
-      "Cache-Control": "max-age=5", // optional client-side caching
+      "Cache-Control": "max-age=5",
     },
+    body: JSON.stringify(response),
   };
 }
