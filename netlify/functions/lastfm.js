@@ -10,17 +10,25 @@ export async function handler(event, context) {
     "https://durokotte.foo.ng",
   ];
 
-  // Pick the origin from the request
+  // Get the origin from the request
   const requestOrigin = event.headers.origin;
-  const allowOrigin = allowedOrigins.includes(requestOrigin)
-    ? requestOrigin
-    : null; // only return if allowed
 
-  // Set CORS headers
+  // If origin is not in allowed list, reject
+  if (!allowedOrigins.includes(requestOrigin)) {
+    return {
+      statusCode: 403, // Forbidden
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ error: "Access denied" }),
+    };
+  }
+
+  // Set CORS headers for allowed origins
   const headers = {
-    ...(allowOrigin ? { "Access-Control-Allow-Origin": allowOrigin } : {}),
+    "Access-Control-Allow-Origin": requestOrigin,
     "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "*", // allow all headers
+    "Access-Control-Allow-Headers": "*",
   };
 
   // Handle preflight OPTIONS request
@@ -42,13 +50,14 @@ export async function handler(event, context) {
       user: username,
       api_key: apiKey,
       format: "json",
+      limit: 1,
     });
 
-    const url = `https://ws.audioscrobbler.com/2.0/?${params.toString()}&limit=1`;
+    const url = `https://ws.audioscrobbler.com/2.0/?${params.toString()}`;
 
     try {
       const res = await fetch(url);
-      cachedData = await res.json(); // Keep full JSON
+      cachedData = await res.json();
       lastFetch = now;
     } catch (err) {
       return {
@@ -59,7 +68,7 @@ export async function handler(event, context) {
     }
   }
 
-  // Return the full cached JSON directly
+  // Return cached data
   return {
     statusCode: 200,
     headers: {
