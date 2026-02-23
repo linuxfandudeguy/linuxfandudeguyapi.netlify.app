@@ -1,10 +1,4 @@
-let cachedData = null;
-let lastFetch = 0; // timestamp in ms
-
 export async function handler(event, context) {
-  const now = Date.now();
-
-  // Allowed origins
   const allowedOrigins = [
     "https://linuxfandudeguy.github.io",
     "https://durokotte.foo.ng",
@@ -12,6 +6,7 @@ export async function handler(event, context) {
 
   const requestOrigin = event.headers.origin;
 
+  // CORS check
   if (!allowedOrigins.includes(requestOrigin)) {
     return {
       statusCode: 403,
@@ -26,7 +21,7 @@ export async function handler(event, context) {
     "Access-Control-Allow-Headers": "*",
   };
 
-  // Handle preflight OPTIONS request
+  // Handle preflight
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
@@ -35,38 +30,27 @@ export async function handler(event, context) {
     };
   }
 
-  // Only fetch from Lanyard if cache is older than 2 seconds
-  if (!cachedData || now - lastFetch > 2000) {
+  // Fetch directly from Lanyard API
+  try {
     const DISCORD_ID = "1443022848443551849";
     const API_URL = `https://api.lanyard.rest/v1/users/${DISCORD_ID}`;
 
-    try {
-      const res = await fetch(API_URL);
-      const json = await res.json();
+    const res = await fetch(API_URL);
+    const rawJson = await res.json(); // no filtering, raw response
 
-      if (!json.success) {
-        throw new Error("Lanyard API returned an error");
-      }
-
-      cachedData = json.data;
-      lastFetch = now;
-    } catch (err) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: "Failed to fetch Discord presence" }),
-      };
-    }
+    return {
+      statusCode: 200,
+      headers: {
+        ...headers,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(rawJson), // completely raw JSON
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: "Failed to fetch Discord presence" }),
+    };
   }
-
-  // Return cached data
-  return {
-    statusCode: 200,
-    headers: {
-      ...headers,
-      "Content-Type": "application/json",
-      "Cache-Control": "max-age=2",
-    },
-    body: JSON.stringify(cachedData),
-  };
 }
